@@ -6,11 +6,19 @@ from langchain_core.prompts import ChatPromptTemplate
 import requests
 import os
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+# Load environment variables from .env file
 load_dotenv()
 
+# OpenAI API key is loaded from .env file
+# OPENAI_API_KEY variable should be defined in .env file
 
 @tool
 def get_weather(city: str) -> str:
@@ -72,7 +80,13 @@ executor = AgentExecutor(agent=agent, tools=tools, verbose=False)
 
 @app.route('/')
 def index():
+    logger.info("Index page accessed")
     return render_template('index.html')
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Railway"""
+    return jsonify({"status": "healthy", "message": "Weather Assistant is running"}), 200
 
 @app.route('/weather', methods=['POST'])
 def get_weather_info():
@@ -92,10 +106,12 @@ def get_weather_info():
         })
     
     except Exception as e:
+        logger.error(f"Error in weather endpoint: {str(e)}")
         return jsonify({
             'error': f'An error occurred: {str(e)}'
         }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    logger.info(f"Starting Weather Assistant on port {port}")
     app.run(debug=False, host='0.0.0.0', port=port)
